@@ -1,8 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var chalk_1 = require("chalk");
-var vorpal = require("vorpal");
-var pkg = require("../package.json");
+const chalk_1 = require("chalk");
+const path = require("path");
+const vorpal = require("vorpal");
+const pkg = require("../package.json");
+const start_server_1 = require("./utils/start-server");
 exports.VERSION = pkg.version;
 exports.DELIMITER = "dcl-cli$";
 exports.isDev = process.argv[1].indexOf("index") !== -1;
@@ -10,31 +12,50 @@ exports.cli = vorpal();
 exports.cli
     .command("init")
     .description("Generates new Decentraland scene.")
+    .option('-f, --force', 'Force file overwrites.')
+    .option('-p, --path <path>', 'Output path (default is the current working directory).')
     .option("--with-sample", "Include sample scene.")
     .action(function (args, callback) {
-    var self = this;
-    self.log("");
-    return self.prompt({
-        type: "input",
-        name: "sampleScene",
-        message: chalk_1.default.yellow(" Do you want to create new project with sample scene? ") + " " + chalk_1.default.red("(y/n) ")
-    }, function (data) {
-        if (data.sampleScene === "y") {
-            self.log(" yes");
-            self.log(" Great! Try out your connection.");
-        }
-        if (data.sampleScene === "n") {
-            self.log("no");
-        }
-        self.log(" Invalid argument.");
-    });
+    const self = this;
+    self.log(args);
+    const root = path.resolve('.');
+    console.log(root);
+    if (args.options["with-sample"]) {
+        self.log(" Creating new project with sample scene...");
+    }
+    else {
+        self.prompt({
+            type: "input",
+            name: "sampleScene",
+            message: `${chalk_1.default.yellow(" Do you want to create new project with sample scene? ")} ${chalk_1.default.red("(y/n) ")}`
+        }, function (data) {
+            self.log(data);
+            if (data.sampleScene === "y") {
+                self.log(" Creating new project with sample scene...");
+            }
+            if (data.sampleScene === "n") {
+                self.log(" Creating new project with sample scene...");
+            }
+            if (data.sampleScene === "") {
+            }
+            self.log(" Invalid argument.");
+        });
+    }
 });
 exports.cli
     .command("start")
+    .alias('run')
     .description("Starts local development server.")
     .action(function (args, callback) {
-    this.log("start");
-    callback();
+    const self = this;
+    start_server_1.default.bind(exports.cli)(args).then((response) => {
+        self.log(chalk_1.default.green(response));
+    }).catch((error) => {
+        if (error) {
+            self.log(chalk_1.default.red('There was a problem starting local development server.'));
+            self.log(error.message);
+        }
+    });
 });
 exports.cli
     .command("upload")
@@ -43,12 +64,12 @@ exports.cli
     this.log("upload");
     callback();
 });
-exports.cli.delimiter(exports.DELIMITER).show();
+exports.cli.delimiter(exports.DELIMITER);
 if (process.argv.length > 2) {
     exports.cli.parse(process.argv);
 }
 else {
-    exports.cli.log("DCL CLI v" + exports.VERSION + "\n");
+    exports.cli.log(`DCL CLI v${exports.VERSION}\n`);
     exports.cli.log("Welcome to the Decentraland command line tool!");
     exports.cli.log('Type "exit" to quit, "help" for a list of commands.\n');
 }
