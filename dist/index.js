@@ -3,8 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const chalk_1 = require("chalk");
 const path = require("path");
 const vorpal = require("vorpal");
-const pkg = require("../package.json");
 const start_server_1 = require("./utils/start-server");
+const pkg = require("../package.json");
 exports.VERSION = pkg.version;
 exports.DELIMITER = "dcl-cli$";
 exports.isDev = process.argv[1].indexOf("index") !== -1;
@@ -12,13 +12,13 @@ exports.cli = vorpal();
 exports.cli
     .command("init")
     .description("Generates new Decentraland scene.")
-    .option('-f, --force', 'Force file overwrites.')
-    .option('-p, --path <path>', 'Output path (default is the current working directory).')
+    .option("-f, --force", "Force file overwrites.")
+    .option("-p, --path <path>", "Output path (default is the current working directory).")
     .option("--with-sample", "Include sample scene.")
     .action(function (args, callback) {
     const self = this;
     self.log(args);
-    const root = path.resolve('.');
+    const root = path.resolve(".");
     console.log(root);
     if (args.options["with-sample"]) {
         self.log(" Creating new project with sample scene...");
@@ -28,7 +28,7 @@ exports.cli
             type: "input",
             name: "sampleScene",
             message: `${chalk_1.default.yellow(" Do you want to create new project with sample scene? ")} ${chalk_1.default.red("(y/n) ")}`
-        }, function (data) {
+        }, (data) => {
             self.log(data);
             if (data.sampleScene === "y") {
                 self.log(" Creating new project with sample scene...");
@@ -39,23 +39,28 @@ exports.cli
             if (data.sampleScene === "") {
             }
             self.log(" Invalid argument.");
+            callback();
         });
     }
 });
 exports.cli
     .command("start")
-    .alias('run')
+    .alias("run")
     .description("Starts local development server.")
     .action(function (args, callback) {
     const self = this;
-    start_server_1.default.bind(exports.cli)(args).then((response) => {
+    start_server_1.default
+        .bind(exports.cli)(args)
+        .then((response) => {
         self.log(chalk_1.default.green(response));
-    }).catch((error) => {
+    })
+        .catch((error) => {
         if (error) {
-            self.log(chalk_1.default.red('There was a problem starting local development server.'));
+            self.log(chalk_1.default.red("There was a problem starting local development server."));
             self.log(error.message);
         }
     });
+    callback();
 });
 exports.cli
     .command("upload")
