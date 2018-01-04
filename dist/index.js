@@ -1,11 +1,18 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const chalk_1 = require("chalk");
-const fs = require("fs");
-const path = require("path");
+const fs = require("fs-extra");
 const vorpal = require("vorpal");
-const mkdirp = require("mkdirp");
 const start_server_1 = require("./utils/start-server");
+const generate_html_1 = require("./utils/generate-html");
 const pkg = require("../package.json");
 exports.VERSION = pkg.version;
 exports.DELIMITER = "dcl-cli$";
@@ -14,58 +21,52 @@ const cli = vorpal();
 cli
     .command("init [name]")
     .description("Generates new Decentraland scene.")
-    .option("-f, --force", "Force file overwrites.")
     .option("-p, --path <path>", "Output path (default is the current working directory).")
     .option("--with-sample", "Include sample scene.")
     .action(function (args, callback) {
-    const self = this;
-    const dirName = exports.isDev ? `tmp/${args.options.path}/${args.name}` : `${args.options.path}/${args.name}`;
-    function createDirFromTemplate(path) {
-        mkdirp(path, (err) => {
-            if (err)
+    return __awaiter(this, void 0, void 0, function* () {
+        const self = this;
+        const dirName = exports.isDev ? `tmp/${args.options.path}/${args.name}` : `${args.options.path}/${args.name}`;
+        fs.ensureDirSync(`${dirName}/audio`);
+        fs.ensureDirSync(`${dirName}/gltf`);
+        fs.ensureDirSync(`${dirName}/obj`);
+        fs.ensureDirSync(`${dirName}/scripts`);
+        fs.ensureDirSync(`${dirName}/textures`);
+        self.log(`New project created in '${dirName}' directory.`);
+        function createScene(path, html, withSampleScene) {
+            fs.outputFile(path, html)
+                .then(() => {
+                if (withSampleScene) {
+                    self.log(`Sample scene was placed into ${chalk_1.default.green("scene.html")}.`);
+                }
+            })
+                .catch((err) => {
                 self.log(err.message);
-            else
-                self.log(`New project created in '${path}' directory.`);
-        });
-    }
-    const questions = [];
-    if (!args.options.force && fs.existsSync(path.resolve(dirName))) {
-        questions.push({
-            type: "confirm",
-            name: "continue",
-            default: false,
-            message: chalk_1.default.yellow("Folder already exists. Overwrite its contents?")
-        });
-    }
-    if (!args.options["with-sample"]) {
-        questions.push({
-            type: "confirm",
-            name: "sampleScene",
-            default: false,
-            message: chalk_1.default.yellow("Do you want to create new project with sample scene?")
-        });
-    }
-    if (questions.length > 0) {
-        self.prompt(questions)
-            .then((results) => {
-            if (!!results.continue) {
-                self.log("stop");
-                callback();
-            }
-            self.log("continue");
-            if (!!results.sampleScene) {
-                createDirFromTemplate(dirName);
-            }
-            else {
-                self.log("[not yet implemented] create project from template WITH sample scene");
-                callback();
-            }
-        });
-    }
-    else {
-        self.log("[not yet implemented] create project from template WITH sample scene");
-        callback();
-    }
+            });
+        }
+        if (args.options["with-sample"]) {
+            const html = generate_html_1.default({ withSampleScene: true });
+            createScene(dirName, html, true);
+        }
+        else {
+            yield self.prompt({
+                type: "confirm",
+                name: "sampleScene",
+                default: false,
+                message: chalk_1.default.yellow("Do you want to create new project with sample scene?")
+            }).then((results) => {
+                self.log(results);
+                if (!results.sampleScene) {
+                    const html = generate_html_1.default({ withSampleScene: false });
+                    createScene(dirName, html, false);
+                }
+                else {
+                    const html = generate_html_1.default({ withSampleScene: true });
+                    createScene(dirName, html, true);
+                }
+            });
+        }
+    });
 });
 cli
     .command("start")
