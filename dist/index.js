@@ -13,12 +13,12 @@ const fs = require("fs-extra");
 const vorpal = require("vorpal");
 const ipfsAPI = require("ipfs-api");
 const generate_html_1 = require("./utils/generate-html");
+const is_dev_1 = require("./utils/is-dev");
 const start_server_1 = require("./utils/start-server");
+const linker_1 = require("./utils/linker");
 const pkg = require("../package.json");
 exports.VERSION = pkg.version;
 exports.DELIMITER = "dcl-cli$";
-exports.isDev = process.argv[1].indexOf("index") !== -1 ||
-    process.argv[1].indexOf("dev") !== -1;
 const cli = vorpal();
 cli
     .command("init")
@@ -199,7 +199,7 @@ cli
                 ? `${args.options.path}/${sceneMeta.display.title}`
                 : sceneMeta.display.title;
         }
-        const dirName = exports.isDev ? `tmp/${projectDir}` : `${projectDir}`;
+        const dirName = is_dev_1.default ? `tmp/${projectDir}` : `${projectDir}`;
         fs.ensureDirSync(`${dirName}/audio`);
         fs.ensureDirSync(`${dirName}/models`);
         fs.ensureDirSync(`${dirName}/textures`);
@@ -260,7 +260,7 @@ cli
         const self = this;
         const ipfsApi = ipfsAPI("localhost", args.options.port || "5001");
         let projectName = "dcl-app";
-        if (exports.isDev) {
+        if (is_dev_1.default) {
             yield self
                 .prompt({
                 type: "input",
@@ -270,7 +270,7 @@ cli
             })
                 .then((res) => (projectName = res.projectName));
         }
-        const root = exports.isDev ? `tmp/${projectName}` : ".";
+        const root = is_dev_1.default ? `tmp/${projectName}` : ".";
         yield fs.access(`${root}/scene.json`, fs.constants.F_OK | fs.constants.R_OK, (err) => {
             if (err) {
                 self.log(`Seems like this is not a Decentraland project! ${chalk_1.default.grey("('scene.json' not found.)")}`);
@@ -326,17 +326,32 @@ cli
             callback();
         });
         self.log("Updating IPNS reference to folder hash... (this might take a while)");
-        yield ipfsApi.name
+        const ipnsHash = yield ipfsApi.name
             .publish(ipfsHash)
             .then((res) => {
-            self.log(`IPNS Link: /ipns/${res.Name}`);
-            callback();
+            const hash = res.name || res.Name;
+            self.log(`IPNS Link: /ipns/${res.name || res.Name}`);
+            return hash;
         })
             .catch((err) => {
             self.log(err.message);
             callback();
         });
+        yield fs
+            .outputFile(`.decentraland/ipns`, ipnsHash)
+            .then(() => { callback(); })
+            .catch((err) => {
+            self.log(err.message);
+            callback();
+        });
     });
+});
+cli
+    .command("link")
+    .description("Link scene to Ethereum.")
+    .action(function (args, callback) {
+    const self = this;
+    linker_1.default.bind(cli)(args, this, callback);
 });
 cli.delimiter(exports.DELIMITER).show();
 if (process.argv.length > 2) {
