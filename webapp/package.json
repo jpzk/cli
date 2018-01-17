@@ -1,0 +1,24 @@
+{
+  "name": "cli",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "decentraland-commons": "git+https://github.com/decentraland/commons.git#release",
+    "decentraland-contracts": "git+https://github.com/decentraland/contracts.git#release",
+    "ledger-wallet-provider": "^2.0.0-beta.0",
+    "query-string": "^5.0.1",
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0",
+    "react-router-dom": "^4.2.2",
+    "react-scripts": "1.1.0",
+    "web3": "^1.0.0-beta.27",
+    "web3-provider-engine": "^13.5.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  }
+}

@@ -1,0 +1,73 @@
+.Main {
+  text-align: center;
+}
+
+.Main h1.Heading {
+  margin-bottom: 13px;
+}
+
+.Main h3.Heading {
+  max-width: 500px;
+  margin: 40px auto 10px;
+  line-height: 33px;
+}
+
+.Main .subtitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 28px;
+  font-family: "Source Sans Pro", Helvetica, sans-serif;
+  color: #3E396B;
+}
+
+.Main a {
+  text-decoration: underline;
+  color: #3E396B;
+}
+
+@media (min-width: 360px) {
+  .Main h1.title {
+    font-size: 36px;
+  }
+}
+
+@media (min-width: 768px) {
+  .Main h1.title {
+    font-size: 46px;
+  }
+}
+
+
+.Heading {
+  text-align: center;
+  color: #3E396B;
+  font-family: "Source Sans Pro", Helvetica, sans-serif;
+}
+
+h1.Heading {
+  font-size: 30px;
+}
+
+h2.Heading {
+  font-size: 28px;
+}
+
+h3.Heading {
+  font-size: 26px;
+}
+
+h4.Heading {
+  font-size: 19px;
+}
+
+@media (min-width: 360px) {
+  h1.Heading {
+    font-size: 36px;
+  }
+}
+
+@media (min-width: 768px) {
+  h1.Heading {
+    font-size: 46px;
+  }
+}
