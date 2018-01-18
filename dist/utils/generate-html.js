@@ -10,14 +10,14 @@ function generateHtml({ withSampleScene = false }) {
 <html>
   <head>
     <title>Blank Decentraland scene</title>
-    <script src="https://client.decentraland.today/preview.js" />
   </head>
   <body>
     <a-scene>
       ${withSampleScene ? sampleScene : '<!-- Your scene code -->'}
     </a-scene>
   </body>
+  <script src="https://client.decentraland.today/preview.js" />
 </html>`;
     return html;
 }
-exports.default = generateHtml;
+exports.generateHtml = generateHtml;

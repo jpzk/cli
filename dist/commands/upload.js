@@ -8,16 +8,18 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const inquirer = require("inquirer");
-function prompt(message, defaultValue = '') {
-    return __awaiter(this, void 0, void 0, function* () {
-        const res = yield inquirer.prompt({
-            type: 'input',
-            name: 'value',
-            default: defaultValue,
-            message
+const uploader_1 = require("../utils/uploader");
+const wrap_async_1 = require("../utils/wrap-async");
+function upload(vorpal) {
+    vorpal
+        .command('upload')
+        .description('Uploads scene to IPFS and updates IPNS.')
+        .option('-p, --port <number>', 'IPFS daemon API port (default is 5001).')
+        .action(wrap_async_1.wrapAsync(function (args, callback) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield uploader_1.uploader(vorpal, args, callback);
+            callback();
         });
-        return res.value;
-    });
+    }));
 }
-exports.prompt = prompt;
+exports.upload = upload;
