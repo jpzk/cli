@@ -3,14 +3,15 @@ import fs = require('fs-extra');
 import Koa = require('koa');
 import Router = require('koa-router');
 import serve = require('koa-static');
-import isDev from './is-dev';
+import * as project from './project';
+import { isDev } from './is-dev';
 import { prompt } from './prompt';
 
-export default async (args: any, vorpal: any, callback: () => void) => {
-  let projectName = 'dcl-app';
+export async function linker(vorpal: any, args: any, callback: () => void) {
+  let projectName = project.getDefaultName();
 
   if (isDev) {
-    projectName = await prompt(vorpal, '(Development-mode) Project name you want to upload: ', projectName);
+    projectName = await prompt('(Development-mode) Project name you want to upload: ', projectName);
   }
 
   const root = isDev ? `tmp/${projectName}` : '.';
@@ -64,4 +65,4 @@ export default async (args: any, vorpal: any, callback: () => void) => {
   vorpal.log(`Please proceed to ${chalk.blue('http://localhost:4044/linker')}.`);
 
   await app.listen(4044);
-};
+}
