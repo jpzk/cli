@@ -11,7 +11,7 @@ function help(vorpal) {
         }
         else {
             const oldCommands = vorpal.commands;
-            const fullCommands = ['init', 'start', 'upload', 'link', 'help'];
+            const fullCommands = ['init', 'start', 'upload', 'link', 'push', 'upgrade', 'help'];
             vorpal.commands = fullCommands.map((commandName) => oldCommands.find((command) => command._name === commandName));
             this.log(vorpal._commandHelp());
             vorpal.commands = oldCommands;

@@ -14,8 +14,8 @@ const inquirer = require("inquirer");
 const project = require("../utils/project");
 const cli_path_1 = require("../utils/cli-path");
 const generate_html_1 = require("../utils/generate-html");
-const is_dev_1 = require("../utils/is-dev");
 const wrap_async_1 = require("../utils/wrap-async");
+const get_root_1 = require("../utils/get-root");
 function init(vorpal) {
     vorpal
         .command('init')
@@ -76,18 +76,10 @@ function init(vorpal) {
                 callback();
                 return;
             }
-            const parsedProjectName = sceneMeta.display.title.toLowerCase().replace(/\s/g, '-');
-            let projectDir;
-            if (args.options.path && args.options.path === '.') {
-                projectDir = args.options.path;
-            }
-            else {
-                projectDir = args.options.path
-                    ? `${args.options.path}/${parsedProjectName}`
-                    : parsedProjectName;
-            }
-            const dirName = is_dev_1.isDev ? `tmp/${projectDir}` : `${projectDir}`;
+            const dirName = args.options.path || get_root_1.getRoot();
             fs.copySync(`${cli_path_1.cliPath}/dist/linker-app`, `${dirName}/.decentraland/linker-app`);
+            fs.copySync(`${cli_path_1.cliPath}/live-reload.js`, `${dirName}/.decentraland/live-reload.js`);
+            fs.copySync(`${cli_path_1.cliPath}/parcel-boundary.js`, `${dirName}/.decentraland/parcel-boundary.js`);
             fs.ensureDirSync(`${dirName}/audio`);
             fs.ensureDirSync(`${dirName}/models`);
             fs.ensureDirSync(`${dirName}/textures`);
@@ -105,7 +97,7 @@ function init(vorpal) {
                 }
             });
             if (args.options.boilerplate) {
-                const html = generate_html_1.generateHtml({ withSampleScene: true });
+                const html = yield generate_html_1.generateHtml({ withSampleScene: true });
                 yield createScene(dirName, html, true);
             }
             else {
@@ -116,11 +108,11 @@ function init(vorpal) {
                     message: chalk_1.default.yellow('Do you want to create new project with sample scene?')
                 });
                 if (results.sampleScene) {
-                    const html = generate_html_1.generateHtml({ withSampleScene: true });
+                    const html = yield generate_html_1.generateHtml({ withSampleScene: true });
                     yield createScene(dirName, html, true);
                 }
                 else {
-                    const html = generate_html_1.generateHtml({ withSampleScene: false });
+                    const html = yield generate_html_1.generateHtml({ withSampleScene: false });
                     yield createScene(dirName, html, false);
                 }
             }
