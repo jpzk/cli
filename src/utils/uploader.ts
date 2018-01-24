@@ -4,22 +4,16 @@ import inquirer = require('inquirer');
 const ipfsAPI = require('ipfs-api');
 import * as project from './project';
 import { cliPath }from './cli-path';
-import { isDev } from './is-dev';
 import { prompt } from './prompt';
+import { getRoot } from './get-root';
 
 export async function uploader(vorpal: any, args: any, callback: () => void) {
   // You need to have ipfs daemon running!
   const ipfsApi = ipfsAPI('localhost', args.options.port || '5001');
 
-  let projectName = project.getDefaultName();
+  const path = getRoot()
 
-  if (isDev) {
-    projectName = await prompt('(Development-mode) Project name you want to upload: ', projectName);
-  }
-
-  const root = isDev ? `tmp/${projectName}` : '.';
-
-  const isDclProject = await fs.pathExists(`${root}/scene.json`);
+  const isDclProject = await fs.pathExists(`${path}/scene.json`);
   if (!isDclProject) {
     vorpal.log(
       `Seems like this is not a Decentraland project! ${chalk.grey(
@@ -32,21 +26,21 @@ export async function uploader(vorpal: any, args: any, callback: () => void) {
   const data = [
     {
       path: `tmp/scene.html`,
-      content: new Buffer(fs.readFileSync(`${root}/scene.html`))
+      content: new Buffer(fs.readFileSync(`${path}/scene.html`))
     },
     {
       path: `tmp/scene.json`,
-      content: new Buffer(fs.readFileSync(`${root}/scene.json`))
+      content: new Buffer(fs.readFileSync(`${path}/scene.json`))
     }
   ];
 
   // Go through project folders and add files if available
   ['audio', 'models', 'textures'].forEach(async (type: string) => {
-    const folder = await fs.readdir(`${root}/${type}`);
+    const folder = await fs.readdir(`${path}/${type}`);
     folder.forEach((name: string) =>
       data.push({
         path: `tmp/${type}/${name}`,
-        content: new Buffer(fs.readFileSync(`${root}/${type}/${name}`))
+        content: new Buffer(fs.readFileSync(`${path}/${type}/${name}`))
       })
     );
   });
@@ -82,10 +76,10 @@ export async function uploader(vorpal: any, args: any, callback: () => void) {
     ipnsHash = publishResult.name || publishResult.Name;
     vorpal.log(`IPNS Link: /ipns/${publishResult.name || publishResult.Name}`);
 
-    await fs.outputFile(`${root}/.decentraland/ipns`, ipnsHash);
+    await fs.outputFile(`${path}/.decentraland/ipns`, ipnsHash);
   } catch (err) {
     vorpal.log(err.message);
   }
 
-  return ipnsHash
+  return ipnsHash;
 }

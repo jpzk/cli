@@ -2,11 +2,13 @@ import "babel-polyfill";
 import React from 'react';
 import Router from 'next/router';
 import { eth } from 'decentraland-commons';
-import LANDRegistry from '../contracts/LANDRegistry';
+import { LANDRegistry } from 'decentraland-commons/dist/contracts/LANDRegistry';
 
 async function ethereum() {
-  await eth.connect(null, [LANDRegistry])
-  const land = await eth.getContract('LANDRegistry')
+  const { address } = await getContractAddress()
+  const land = new LANDRegistry(address)
+
+  await eth.connect({ contracts: [land]})
 
   return {
     address: await eth.getAddress(),
@@ -15,15 +17,24 @@ async function ethereum() {
   }
 }
 
+async function getContractAddress() {
+  const res = await fetch('/api/contract-address');
+  return await res.json();
+}
+
 async function getSceneMetadata() {
-  const res = await fetch('http://localhost:4044/api/get-scene-data');
+  const res = await fetch('/api/get-scene-data');
   return await res.json();
 }
 
 async function getIpnsHash() {
-  const res = await fetch('http://localhost:4044/api/get-ipns-hash');
+  const res = await fetch('/api/get-ipns-hash');
   const ipnsHash = await res.json();
   return ipnsHash;
+}
+
+async function closeServer(ok) {
+  const res = await fetch(`/api/close?ok=${ok}`);
 }
 
 export default class Page extends React.Component {
@@ -39,13 +50,25 @@ export default class Page extends React.Component {
   }
 
   async componentDidMount() {
-    try {
-      const { land, address, web3 } = await ethereum()
+    try { 
+      let land, address, web3
 
-      this.setState({
-        loading: false,
-        address
-      })
+      try {
+        const res = await ethereum()
+        land = res.land
+        address = res.address
+        web3 = res.web3
+
+        this.setState({
+          loading: false,
+          address
+        })
+      } catch(err) {
+        this.setState({
+          error: `Could not connect to MetaMask`
+        });
+        return;
+      }
 
       try {
         const sceneMetadata = await getSceneMetadata();
@@ -54,6 +77,7 @@ export default class Page extends React.Component {
         this.setState({
           error: `There was a problem getting scene data.\nTry to re-initialize the project with dcl init.`
         });
+        closeServer(false)
         return;
       }
 
@@ -64,26 +88,44 @@ export default class Page extends React.Component {
         this.setState({
           error: `There was a problem getting IPNS hash of your scene.\nTry to re-upload with dcl upload.`
         });
+        closeServer(false)
         return;
       }
 
-      const x = [];
-      const y = [];
+      const coordinates = [];
 
       this.state.sceneMetadata.scene.parcels.forEach(parcel => {
-        x.push(Number(parcel.split(",")[0]));
-        y.push(Number(parcel.split(",")[1]));
+        const [x, y] = parcel.split(",");
+
+        coordinates.push({
+          x: parseInt(x, 10),
+          y: parseInt(y, 10)
+        })
       });
-
-      const tx = await land.updateManyLandData(
-        x,
-        y,
-        this.state.ipnsHash
-      )
-
+      
+      const oldData = await land.getData(coordinates[0].x, coordinates[0].y)
+      let name, description
+      try {
+        const decoded = LANDRegistry.decodeLandData(oldData)
+        name = decoded.name
+        description = decoded.description
+      } catch(err) {
+        name = ''
+        description = ''
+      }
+      const data = LANDRegistry.encodeLandData({
+        version: 0,
+        name,
+        description,
+        ipns: this.state.ipnsHash
+      })
+      const tx = await land.updateManyLandData(coordinates, data)
       this.setState({ tx })
+
+      closeServer(true)
     } catch(err) {
       this.setState({loading: false, error: err.message})
+      closeServer(false)
     }
   }
 

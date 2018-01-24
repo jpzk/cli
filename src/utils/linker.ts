@@ -3,21 +3,17 @@ import fs = require('fs-extra');
 import Koa = require('koa');
 import Router = require('koa-router');
 import serve = require('koa-static');
-import * as project from './project';
-import { isDev } from './is-dev';
+import axios from 'axios';
+import { env } from 'decentraland-commons';
+import * as project from '../utils/project';
 import { prompt } from './prompt';
+import opn = require('opn');
+import { getRoot } from './get-root';
 
 export async function linker(vorpal: any, args: any, callback: () => void) {
-  let projectName = project.getDefaultName();
+  const path = getRoot()
 
-  if (isDev) {
-    projectName = await prompt('(Development-mode) Project name you want to upload: ', projectName);
-  }
-
-  const root = isDev ? `tmp/${projectName}` : '.';
-
-  const isDclProject = await fs.pathExists(`${root}/scene.json`);
-
+  const isDclProject = await fs.pathExists(`${path}/scene.json`);
   if (!isDclProject) {
     vorpal.log(`Seems like this is not a Decentraland project! ${chalk.grey('(\'scene.json\' not found.)')}`);
     callback();
@@ -25,7 +21,7 @@ export async function linker(vorpal: any, args: any, callback: () => void) {
   }
 
   const hasLinker = await fs.pathExists(
-    `${root}/.decentraland/linker-app/linker/index.html`
+    `${path}/.decentraland/linker-app/linker/index.html`
   );
 
   if (!hasLinker) {
@@ -36,18 +32,48 @@ export async function linker(vorpal: any, args: any, callback: () => void) {
 
   vorpal.log(chalk.blue('\nConfiguring linking app...\n'));
 
+  env.load();
+
   const app = new Koa();
   const router = new Router();
 
-  app.use(serve(`${root}/.decentraland/linker-app`));
+  app.use(serve(`${path}/.decentraland/linker-app`));
 
   router.get('/api/get-scene-data', async (ctx) => {
-    ctx.body = await fs.readJson(`${root}/scene.json`);
+    ctx.body = await fs.readJson(`${path}/scene.json`);
   });
 
   router.get('/api/get-ipns-hash', async (ctx) => {
-    const ipnsHash = await fs.readFile(`${root}/.decentraland/ipns`, 'utf8');
+    const ipnsHash = await fs.readFile(`${path}/.decentraland/ipns`, 'utf8');
     ctx.body = JSON.stringify(ipnsHash);
+  });
+
+  router.get('/api/contract-address', async (ctx) => {
+    let LANDRegistryAddress: string = null;
+
+    try {
+      const { data } = await axios.get('https://contracts.decentraland.org/addresses.json');
+      LANDRegistryAddress = data.mainnet.LANDRegistry;
+    } catch (error) {
+      // fallback to ENV
+    }
+
+    LANDRegistryAddress = env.get('LAND_REGISTRY_CONTRACT_ADDRESS', () => LANDRegistryAddress);
+
+    ctx.body = JSON.stringify({
+      address: LANDRegistryAddress
+    });
+  });
+
+  router.get('/api/close', async (ctx) => {
+    ctx.res.end();
+    const ok = require('url').parse(ctx.req.url, true).query.ok;
+    if (ok === 'true') {
+      vorpal.log(chalk.green('\nThe project was linked to Ethereum!'));
+    } else {
+      vorpal.log(chalk.red('\nThe project was not linked to Ethereum'));
+    }
+    process.exit(0);
   });
 
   router.get('*', async (ctx) => {
@@ -61,8 +87,8 @@ export async function linker(vorpal: any, args: any, callback: () => void) {
 
   app.use(router.routes());
 
+  const url = 'http://localhost:4044/linker';
   vorpal.log('Linking app ready.');
-  vorpal.log(`Please proceed to ${chalk.blue('http://localhost:4044/linker')}.`);
-
-  await app.listen(4044);
+  vorpal.log(`Please proceed to ${chalk.blue(url)}`);
+  await app.listen(4044, () => opn(url));
 }

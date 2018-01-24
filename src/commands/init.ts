@@ -4,8 +4,8 @@ import inquirer = require('inquirer');
 import * as project from '../utils/project';
 import { cliPath }from '../utils/cli-path';
 import { generateHtml } from '../utils/generate-html';
-import { isDev } from '../utils/is-dev';
 import { wrapAsync } from '../utils/wrap-async';
+import { getRoot } from '../utils/get-root';
 
 export function init(vorpal: any) {
   vorpal
@@ -80,21 +80,19 @@ export function init(vorpal: any) {
         return;
       }
 
-      const parsedProjectName = sceneMeta.display.title.toLowerCase().replace(/\s/g, '-');
-      let projectDir;
-      if (args.options.path && args.options.path === '.') {
-        projectDir = args.options.path;
-      } else {
-        projectDir = args.options.path
-          ? `${args.options.path}/${parsedProjectName}`
-          : parsedProjectName;
-      }
-
-      const dirName = isDev ? `tmp/${projectDir}` : `${projectDir}`;
+      const dirName = args.options.path || getRoot()
 
       fs.copySync(
         `${cliPath}/dist/linker-app`,
         `${dirName}/.decentraland/linker-app`
+      );
+      fs.copySync(
+        `${cliPath}/live-reload.js`,
+        `${dirName}/.decentraland/live-reload.js`
+      );
+      fs.copySync(
+        `${cliPath}/parcel-boundary.js`,
+        `${dirName}/.decentraland/parcel-boundary.js`
       );
       // Project folders
       fs.ensureDirSync(`${dirName}/audio`);
@@ -125,7 +123,7 @@ export function init(vorpal: any) {
       };
 
       if (args.options.boilerplate) {
-        const html = generateHtml({ withSampleScene: true });
+        const html = await generateHtml({ withSampleScene: true });
         await createScene(dirName, html, true);
       } else {
         const results = await inquirer.prompt({
@@ -138,10 +136,10 @@ export function init(vorpal: any) {
         });
 
         if (results.sampleScene) {
-          const html = generateHtml({ withSampleScene: true });
+          const html = await generateHtml({ withSampleScene: true });
           await createScene(dirName, html, true);
         } else {
-          const html = generateHtml({ withSampleScene: false });
+          const html = await generateHtml({ withSampleScene: false });
           await createScene(dirName, html, false);
         }
       }
